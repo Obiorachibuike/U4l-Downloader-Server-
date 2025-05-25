@@ -1,4 +1,6 @@
+Here's the updated `README.md` file that includes a section for a Dockerfile for deployment and instructions for integrating the API with a React frontend. 
 
+```markdown
 ![App Logo](https://yourdomain.com/icon.png)
 
 # YouTube Media Downloader API 🧡
@@ -19,6 +21,9 @@ A lightweight Node.js API built with Express.js for fetching YouTube metadata an
     - [POST /download](#2-post-download--download-video-or-audio)
 - [Rate Limiting](#rate-limiting)
 - [Example Client Usage](#example-client-usage)
+- [Swagger UI Documentation](#swagger-ui-documentation)
+- [Dockerfile for Deployment](#dockerfile-for-deployment)
+- [Integrating with a React Frontend](#integrating-with-a-react-frontend)
 - [License](#license)
 - [Author](#author)
 
@@ -190,6 +195,101 @@ Exceeding returns:
 
 ---
 
+## Swagger UI Documentation 📖
+
+You can explore and interact with the API using the Swagger UI. Visit the following link to access the documentation:
+
+[Swagger UI for YouTube Media Downloader API](https://app.swaggerhub.com/apis/codeverse-8f8/Url_media_downloader/1.0.0#/default/post_download)
+
+---
+
+## Dockerfile for Deployment 🐳
+
+To deploy the API using Docker, create a file named `Dockerfile` in the root of your project with the following content:
+
+```dockerfile
+# Use the official Node.js image
+FROM node:16
+
+# Set the working directory
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the application code
+COPY . .
+
+# Expose the port the app runs on
+EXPOSE 5000
+
+# Command to run the application
+CMD ["npm", "start"]
+```
+
+### Build and Run the Docker Container
+
+1. Build the Docker image:
+
+   ```bash
+   docker build -t yt-dlp-api .
+   ```
+
+2. Run the Docker container:
+
+   ```bash
+   docker run -p 5000:5000 yt-dlp-api
+   ```
+
+Your API will now be accessible at `http://localhost:5000`.
+
+---
+
+## Integrating with a React Frontend ⚛️
+
+To integrate this API with a React frontend, follow these steps:
+
+1. **Set Up Your React App**: If you haven't already, create a new React app using Create React App:
+
+   ```bash
+   npx create-react-app my-app
+   cd my-app
+   ```
+
+2. **Install Axios**: You can use Axios to make HTTP requests to your API:
+
+   ```bash
+   npm install axios
+   ```
+
+3. **Create API Functions**: In your React app, create a file (e.g., `api.js`) to handle API requests:
+
+   ```javascript
+   import axios from 'axios';
+
+   const API_URL = 'http://localhost:5000'; // Update this if your API is hosted elsewhere
+
+   export const fetchVideoInfo = async (url) => {
+     const response = await axios.get(`${API_URL}/info`, { params: { url } });
+     return response.data;
+   };
+
+   export const downloadMedia = async (url, format_id, type) => {
+     const response = await axios.post(`${API_URL}/download`, new URLSearchParams({ url, format_id, type }), {
+       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+       responseType: 'blob',
+     });
+     return response.data;
+   };
+   ```
+
+4. **Use API Functions in Your Components**: You can now use these functions in your React components to fetch video info and download media.
+
+---
+
 ## License 📜
 
 MIT License © 2025 [Your Name]
@@ -204,15 +304,10 @@ Twitter: [@yourtwitter](https://twitter.com/yourtwitter)
 Email: your.email@example.com
 
 ---
-
-Let me know if you'd like:
-
-- A Dockerfile for deployment  
-- Instructions for integrating this API with a React frontend  
-- README translated to another language  
-- An OpenAPI/Swagger spec for this API  
-
-Just say the word! 🗣️
 ```
 
-Feel free to modify any sections as needed!
+### Summary of Changes
+- **Dockerfile for Deployment**: Added a section with a sample Dockerfile and instructions for building and running the Docker container.
+- **Integrating with a React Frontend**: Provided steps for setting up a React app, installing Axios, creating API functions, and using them in components.
+
+Feel free to modify any sections as needed! If you have any more requests or questions, just let me know!
