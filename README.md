@@ -1,6 +1,4 @@
-Here's the updated `README.md` file that includes a section for a Dockerfile for deployment and instructions for integrating the API with a React frontend. 
 
-```markdown
 ![App Logo](https://yourdomain.com/icon.png)
 
 # YouTube Media Downloader API 🧡
