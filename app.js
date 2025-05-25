@@ -1,12 +1,11 @@
 import express from 'express';
 import cors from 'cors';
-import rateLimit from 'express-rate-limit';  // <-- import rateLimit
-import { exec } from 'child_process';
+import rateLimit from 'express-rate-limit';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { promisify } from 'util';
-import ytDlpExec from 'yt-dlp-exec';
+import youtubedl from 'youtube-dl-exec'; // <-- changed import
 
 const app = express();
 app.use(cors());
@@ -15,32 +14,26 @@ app.use(express.urlencoded({ extended: true }));
 const unlinkAsync = promisify(fs.unlink);
 const rmdirAsync = promisify(fs.rmdir);
 
-// Rate limiter middleware config: max 100 requests per 15 minutes per IP
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' }
 });
 
-// Apply rate limiter to all routes
 app.use(limiter);
 
-// Helper to create a temporary directory
 async function createTempDir() {
   return await fs.promises.mkdtemp(path.join(os.tmpdir(), 'yt-dlp-'));
 }
 
 app.get('/info', async (req, res) => {
   const url = req.query.url;
-  if (!url) {
-    return res.status(400).json({ error: 'No URL provided' });
-  }
+  if (!url) return res.status(400).json({ error: 'No URL provided' });
 
   try {
-    // Extract info JSON without downloading
-    const info = await ytDlpExec(url, {
+    const info = await youtubedl(url, {
       dumpSingleJson: true,
       skipDownload: true,
       quiet: true,
@@ -90,56 +83,42 @@ app.post('/download', async (req, res) => {
   let tmpDir;
   try {
     tmpDir = await createTempDir();
-
     const outTemplate = path.join(tmpDir, '%(title)s.%(ext)s');
 
-    const ytdlpArgs = [
-      url,
-      '-f', format_id,
-      '-o', outTemplate,
-      '--quiet',
-      '--no-playlist',
-    ];
+    const ytdlArgs: any = {
+      f: format_id,
+      o: outTemplate,
+      quiet: true,
+      noPlaylist: true,
+    };
 
     if (media_type === 'audio') {
-      ytdlpArgs.push(
-        '--extract-audio',
-        '--audio-format', 'mp3',
-        '--audio-quality', '192K',
-        '--prefer-ffmpeg'
-      );
+      ytdlArgs.extractAudio = true;
+      ytdlArgs.audioFormat = 'mp3';
+      ytdlArgs.audioQuality = '192K';
+      ytdlArgs.preferFfmpeg = true;
     }
 
-    // Run yt-dlp process
-    await ytDlpExec(ytdlpArgs, { stdio: 'ignore' });
+    await youtubedl(url, ytdlArgs);
 
-    // Find the downloaded file (the only file in tmpDir)
     const files = await fs.promises.readdir(tmpDir);
     if (files.length === 0) {
       throw new Error('No file was downloaded');
     }
+
     const filePath = path.join(tmpDir, files[0]);
 
-    // Stream file as attachment
     res.download(filePath, files[0], async (err) => {
-      // Cleanup tmp files after sending
       try {
-        if (fs.existsSync(filePath)) {
-          await unlinkAsync(filePath);
-        }
-        if (tmpDir) {
-          await rmdirAsync(tmpDir);
-        }
-      } catch (_) {
-        // ignore cleanup errors
-      }
+        if (fs.existsSync(filePath)) await unlinkAsync(filePath);
+        if (tmpDir) await rmdirAsync(tmpDir);
+      } catch (_) {}
       if (err && !res.headersSent) {
         res.status(500).json({ error: 'Failed to send file' });
       }
     });
   } catch (e) {
     if (tmpDir) {
-      // Cleanup on error
       try {
         const files = await fs.promises.readdir(tmpDir);
         for (const file of files) {
