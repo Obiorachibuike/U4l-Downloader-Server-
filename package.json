@@ -2,7 +2,7 @@
   "name": "yt-dlp-server",
   "version": "1.0.0",
   "description": "Express server for fetching and downloading YouTube videos using yt-dlp",
-  "main": "index.js",
+  "main": "app.js",
   "type": "module",
   "scripts": {
     "start": "node index.js",
